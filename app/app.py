@@ -23,7 +23,7 @@ import os
 import re
 import json
 import openai
-from openai import OpenAI
+import openai
 from urllib.parse import quote
 
 # ✅ 載入 .env 檔案
@@ -52,7 +52,7 @@ STORAGE_OPTIONS = ["64GB", "128GB", "256GB", "512GB", "1TB"]
 # GPT 調用函數
 def call_gpt_with_web_search(prompt):
     try:
-        client = OpenAI()
+        client = openai
         response = client.responses.create(
             model="gpt-4.1",
             tools=[{"type": "web_search_preview"}],
@@ -74,7 +74,7 @@ def compare_devices(device1, device2):
     請確保每個內容都需要查詢過確保回答的正確性。"""
 
     try:
-        client = OpenAI()
+        client = openai
         response = client.responses.create(
             model="gpt-4.1",
             tools=[{"type": "web_search_preview"}],
