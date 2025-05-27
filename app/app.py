@@ -89,7 +89,7 @@ def compare_devices(device1, device2):
 
 # 獲取裝置價格
 def get_device_price(device_name):
-    prompt = f"請查詢 {device_name} 在台灣通路的最新價格資訊，包括：2. 發售價格(台幣)\n3. 目前最低價格(台幣)\n4. 二手價格(台幣)\n請確保所有價格都以台幣顯示，並以清晰格式回覆，且輸出結果不顯示星號"
+    prompt = f"請查詢 {device_name} 在台灣通路的最新價格資訊，包括：2. 發售價格(台幣)\n3. 目前最低價格(台幣)\n4. 二手價格(台幣)\n請確保所有價格都以台幣顯示，並以清晰格式回覆，且輸出結果不顯示星號，確保回覆為純文字，且不包含任何外部連結。"
     
     try:
         response = openai.responses.create(
@@ -169,15 +169,6 @@ def callback():
 @app.route("/", methods=['GET'])
 def health_check():
     return "LINE Bot is running!", 200
-
-# ✅ 設定測試路由
-@app.route("/test", methods=['GET'])
-def test_gpt():
-    try:
-        response = call_gpt_with_web_search("請提供最新的iPhone系列型號和特點")
-        return response, 200
-    except Exception as e:
-        return f"Error: {str(e)}", 500
 
 # ✅ 處理加入好友事件
 @line_handler.add(FollowEvent)
