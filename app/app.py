@@ -25,6 +25,9 @@ import json
 import openai
 import openai
 from urllib.parse import quote
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
 
 # ✅ 載入 .env 檔案
 load_dotenv()
@@ -325,13 +328,3 @@ if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=True)
 
 
-def main_menu():
-    while True:
-        user_input = input("請輸入指令（輸入 'Q' 退出）：")
-        if user_input.upper() == 'Q':
-            print("歡迎使用，再見！")
-            break
-        # 顯示功能選單
-        print(show_help())
-
-main_menu()
