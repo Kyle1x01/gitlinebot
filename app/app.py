@@ -89,20 +89,22 @@ def compare_devices(device1, device2):
 
 # 獲取裝置價格
 def get_device_price(device_name):
-    price_info = get_product_price(device_name)
-    if price_info and "status" in price_info and price_info["status"] == "success":
-        data = price_info["data"]
-        result = f"📱 {data.get('brand', '未知品牌')} {data.get('model', '未知型號')}\n\n"
+    prompt = f"請查詢 {device_name} 在 SOGI手機王 (https://www.sogi.com.tw/) 的最新價格資訊，包括：\n1. 裝置規格\n2. 發售價格(台幣)\n3. 目前最低價格(台幣)\n4. 二手價格(台幣)\n請確保所有價格都以台幣顯示，並以清晰格式回覆"
+    
+    try:
+        response = openai.responses.create(
+            model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
+            input=prompt
+        )
         
-        for spec_price in data.get('specs_prices', []):
-            result += f"📋 規格: {spec_price.get('spec', '規格不詳')}\n"
-            result += f"💰 發售價格: {spec_price.get('original_price', '資訊不足')}\n"
-            result += f"💰 目前最低價格: {spec_price.get('price', '資訊不足')}\n\n"
-        
-        result += f"🔗 資料來源: SOGI手機王 ({data.get('url', 'https://www.sogi.com.tw/')})\n"
-        return result
-    else:
-        return "💰 價格資訊: 無法獲取價格資訊，請直接訪問 SOGI手機王 (https://www.sogi.com.tw/)"
+        if response.output_text:
+            return f"📱 {device_name} 價格資訊:\n\n{response.output_text}\n\n🔗 資料來源: SOGI手機王 (https://www.sogi.com.tw/)"
+        else:
+            return "💰 價格資訊: 無法獲取價格資訊，請直接訪問 SOGI手機王 (https://www.sogi.com.tw/)"
+    except Exception as e:
+        app.logger.error(f"OpenAI API 錯誤: {str(e)}")
+        return "💰 價格資訊: 暫時無法查詢，請稍後再試或直接訪問 SOGI手機王 (https://www.sogi.com.tw/)"
 
 #裝置資訊查詢
 def get_device_info(device_query):
