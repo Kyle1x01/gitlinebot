@@ -102,30 +102,12 @@ def get_device_price(device_name):
 
 #裝置資訊查詢
 def get_device_info(device_query):
-    prompt = f"請提供關於 {device_query} 的詳細資訊，包括：\n1. 主要規格\n2. 最新價格範圍\n3. 優缺點分析\n4. 適合的使用場景\n5. 市場評價"
+    prompt = f"""請提供關於 {device_query} 的台灣版本詳細資訊，包括：\n 1. 主要規格（僅限台灣版）\n 2. 最新價格範圍（台灣市場）\n 3. 優缺點分析\n 4. 適合的使用場景\n 5. 市場評價（台灣用戶）\n \n 請確保回覆為純文字，且不包含任何外部連結。"""
     return call_gpt_with_web_search(prompt)
 
 # 換機建議
 def get_upgrade_recommendation(current_phone, upgrade_cycle, requirements, budget):
-    prompt = f"""請根據以下資訊，推薦1-3款適合的手機：
-    - 目前使用的手機：{current_phone}
-    - 換機週期：{upgrade_cycle}
-    - 特定需求：{requirements}
-    - 預算：{budget}
-    
-    請提供以下資訊：
-    1. 推薦的1-3款手機型號
-    2. 每款手機的優缺點
-    3. 為什麼這些手機適合用戶的需求
-    4. 價格範圍
-    
-    請不要直接告訴用戶應該選擇哪一款，而是提供客觀的比較，讓用戶自行決定。
-    """
-    # 初始化 OpenAI 客户端
-    client = OpenAI()
-    
-    # GPT 调用函数
-    # 使用 OpenAI 的 Responses API 进行网络搜索
+    prompt = f"""請根據以下資訊，推薦1-3款在台灣上市的手機：\n - 目前使用的手機：{current_phone}\n - 換機週期：{upgrade_cycle}\n - 特定需求：{requirements}\n - 預算：{budget}\n \n 請提供以下資訊：\n 1. 推薦的1-3款手機型號\n 2. 每款手機的優缺點\n 3. 為什麼這些手機適合用戶的需求\n 4. 價格範圍（以台幣顯示）\n \n 請確保回覆為純文字，且不包含任何外部連結。"""
     response = client.responses.create(
         model="gpt-4.1",
         tools=[{"type": "web_search_preview"}],
@@ -194,7 +176,7 @@ def test_gpt():
 # ✅ 處理加入好友事件
 @line_handler.add(FollowEvent)
 def handle_follow(event):
-    welcome_text = """🎉 歡迎使用 gptDVS 電子裝置比較助手！
+    welcome_text = """🎉 歡迎使用3吸裝置比較助手手！
 
 請選擇您需要的功能：
 1️⃣ 裝置價格查詢
@@ -240,7 +222,7 @@ def handle_message(event):
                 elif user_input == "5":
                     reply_text = show_help()
             else:
-                reply_text = """🎉 歡迎使用 gptDVS 電子裝置比較助手！
+                reply_text = """🎉  歡迎使用3吸裝置比較助手手！
 
 請選擇您需要的功能：
 1️⃣ 裝置價格查詢
