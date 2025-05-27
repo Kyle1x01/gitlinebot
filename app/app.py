@@ -1,6 +1,6 @@
 from flask import Flask, request, abort
 from dotenv import load_dotenv
-from crawler.crawler import get_product_price
+from app.crawler.crawler import get_product_price, load_product_url_map
 from linebot.v3 import (
     WebhookHandler
 )
