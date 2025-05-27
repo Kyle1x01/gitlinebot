@@ -89,7 +89,7 @@ def compare_devices(device1, device2):
 
 # 獲取裝置價格
 def get_device_price(device_name):
-    prompt = f"請查詢 {device_name} 在 SOGI手機王 (https://www.sogi.com.tw/) 的最新價格資訊，包括：\n1. 裝置規格\n2. 發售價格(台幣)\n3. 目前最低價格(台幣)\n4. 二手價格(台幣)\n請確保所有價格都以台幣顯示，並以清晰格式回覆"
+    prompt = f"請查詢 {device_name} 在台灣通路的最新價格資訊，包括：2. 發售價格(台幣)\n3. 目前最低價格(台幣)\n4. 二手價格(台幣)\n請確保所有價格都以台幣顯示，並以清晰格式回覆，且輸出結果不顯示星號"
     
     try:
         response = openai.responses.create(
@@ -99,7 +99,7 @@ def get_device_price(device_name):
         )
         
         if response.output_text:
-            return f"📱 {device_name} 價格資訊:\n\n{response.output_text}\n\n🔗 資料來源: SOGI手機王 (https://www.sogi.com.tw/)"
+            return f"📱 {device_name} 價格資訊:\n\n{response.output_text}\n)"
         else:
             return "💰 價格資訊: 無法獲取價格資訊，請直接訪問 SOGI手機王 (https://www.sogi.com.tw/)"
     except Exception as e:
