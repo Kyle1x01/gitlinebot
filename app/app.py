@@ -180,17 +180,20 @@ def handle_message(event):
         else:
             # 處理各功能的具體邏輯
             state = user_states[user_id]
+            reply_text = ""  # 初始化變數
             if state["flow"] == "price" and state["step"] == "waiting_input":
                 reply_text = get_device_price(user_input)
                 del user_states[user_id]
             elif state["flow"] == "info" and state["step"] == "waiting_input":
-                reply_text = get_device_info(user_input)
+                reply_text = "裝置資訊查詢功能暫時無法使用，請稍後再試。"
                 del user_states[user_id]
             elif state["flow"] == "compare" and state["step"] == "waiting_input":
                 if "vs" not in user_input:
                     reply_text = "格式錯誤，請使用：裝置1 vs 裝置2"
                 else:
                     devices = user_input.split("vs")
+                    reply_text = "裝置比較功能暫時無法使用，請稍後再試。"
+                    del user_states[user_id]
                     reply_text = compare_devices(devices[0].strip(), devices[1].strip())
                     del user_states[user_id]
             elif state["flow"] == "upgrade":
@@ -207,12 +210,7 @@ def handle_message(event):
                     state["step"] = "budget"
                     reply_text = "您的預算是多少？"
                 elif state["step"] == "budget":
-                    reply_text = get_upgrade_recommendation(
-                        state["current_phone"],
-                        state["upgrade_cycle"],
-                        state["requirements"],
-                        user_input
-                    )
+                    reply_text = "換機建議功能暫時無法使用，請稍後再試。"
                     del user_states[user_id]
         # 發送回覆
         with ApiClient(configuration) as api_client:
