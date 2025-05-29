@@ -49,24 +49,6 @@ if not os.getenv("LINE_CHANNEL_SECRET") or not os.getenv("LINE_CHANNEL_ACCESS_TO
 # 用戶狀態管理
 user_states = {}
 
-# 定義常用容量選項
-STORAGE_OPTIONS = ["64GB", "128GB", "256GB", "512GB", "1TB"]
-
-# GPT 調用函數
-def call_gpt_with_web_search(prompt):
-    try:
-        client = openai
-        response = client.responses.create(
-            model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
-            input=prompt
-        )
-        return response.output_text
-    except Exception as e:
-        app.logger.error(f"GPT API 錯誤: {str(e)}")
-        return f"無法連接到 GPT 服務: {str(e)}"
-
-# 比較兩個裝置
 # 比較兩個裝置
 def compare_devices(device1, device2):
     prompt = f"""請比較以下兩款手機的規格（必須包含裝置名稱、處理器、記憶體、儲存空間、螢幕、前後鏡頭、電池與重量）：
@@ -106,12 +88,7 @@ def get_device_price(device_name):
         app.logger.error(f"OpenAI API 錯誤: {str(e)}")
         return "💰 價格資訊: 暫時無法查詢，請稍後再試或直接訪問 SOGI手機王 (https://www.sogi.com.tw/)"
 
-#裝置資訊查詢
-def get_device_info(device_query):
-    prompt = f"""請提供關於 {device_query} 的台灣版本詳細資訊，包括：\n 1. 主要規格（僅限台灣版）\n 2. 最新價格範圍（台灣市場）\n 3. 優缺點分析\n 4. 適合的使用場景\n 5. 市場評價（台灣用戶）\n \n 請確保回覆為純文字，且不包含任何外部連結。"""
-    return call_gpt_with_web_search(prompt)
-
-# 換機建議
+#換機建議
 def get_upgrade_recommendation(current_phone, upgrade_cycle, requirements, budget):
     prompt = f"""請根據以下資訊，推薦1-3款在台灣上市的手機：\n - 目前使用的手機：{current_phone}\n - 換機週期：{upgrade_cycle}\n - 特定需求：{requirements}\n - 預算：{budget}\n \n 請提供以下資訊：\n 1. 推薦的1-3款手機型號\n 2. 每款手機的優缺點\n 3. 這些手機適合用戶的需求\n 4. 價格範圍（以台幣顯示）\n \n 請確保回覆為純文字，且不包含任何外部連結。"""
     response = client.responses.create(
@@ -121,34 +98,6 @@ def get_upgrade_recommendation(current_phone, upgrade_cycle, requirements, budge
     )
     
     return response.output_text
-
-# 顯示幫助信息
-def show_help():
-    return """📝 使用說明：
-
-1️⃣ 裝置價格查詢
-   格式：直接輸入裝置名稱
-   例如：iPhone 15 Pro
-
-2️⃣ 裝置資訊查詢
-   格式：直接輸入裝置名稱
-   例如：Samsung Galaxy S24 Ultra
-
-3️⃣ 裝置比較
-   格式：裝置1 vs 裝置2
-   例如：iPhone 15 Pro vs Samsung S24 Ultra
-
-4️⃣ 換機建議
-   將引導您提供：
-   - 目前使用的手機
-   - 換機週期
-   - 特定需求
-   - 預算
-
-5️⃣ 查看說明
-   顯示此幫助訊息
-
-請輸入數字 1-5 選擇功能"""
 
 # ✅ 設定 Webhook 路由
 @app.route("/callback", methods=['POST'])
@@ -266,20 +215,6 @@ def handle_message(event):
                         user_input
                     )
                     del user_states[user_id]
-            elif state["flow"] == "repair":
-                if state["step"] == "device_model":
-                    state["device_model"] = user_input
-                    state["step"] = "damaged_part"
-                    reply_text = "請告訴我損壞的部件是什麼？（例如：螢幕、電池、相機等）"
-                elif state["step"] == "damaged_part":
-                    reply_text = evaluate_repair_value(state["device_model"], user_input)
-                    del user_states[user_id]
-            elif state["flow"] == "storage_query" and state["step"] == "waiting_for_storage":
-                reply_text = get_device_info(
-                    f"{state['brand']}-{state['model']}-{user_input}"
-                )
-                del user_states[user_id]
-
         # 發送回覆
         with ApiClient(configuration) as api_client:
             line_bot_api = MessagingApi(api_client)
@@ -305,15 +240,6 @@ def handle_message(event):
                 )
         except Exception as reply_error:
             app.logger.error(f"回覆錯誤訊息失敗：{str(reply_error)}")
-
-# 預先載入商品資料
-try:
-    from crawler.crawler import load_product_url_map
-    print("✅ 正在載入商品資料...")
-    product_list = load_product_url_map()
-    print(f"✅ 已載入 {len(product_list)} 筆商品資料")
-except Exception as e:
-    print(f"❌ 載入商品資料失敗：{str(e)}")
 
 # 🟢 主程式啟動 - 適用於本地開發和 Vercel 部署
 if __name__ == "__main__":
