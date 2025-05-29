@@ -226,19 +226,22 @@ def handle_message(event):
 
     except Exception as e:
         app.logger.error(f"錯誤：{str(e)}")
-        error_message = "抱歉，系統暫時無法處理您的請求。\n請稍後再試，或嘗試其他關鍵字搜尋。"
         
-        try:
-            with ApiClient(configuration) as api_client:
-                line_bot_api = MessagingApi(api_client)
-                line_bot_api.reply_message(
-                    ReplyMessageRequest(
-                        reply_token=event.reply_token,
-                        messages=[TextMessage(text=error_message)]
+        # 只有在確實發生錯誤時才回覆錯誤訊息
+        if not reply_text or "查詢發生錯誤" in reply_text:
+            error_message = "抱歉，系統暫時無法處理您的請求。\n請稍後再試，或嘗試其他關鍵字搜尋。"
+            
+            try:
+                with ApiClient(configuration) as api_client:
+                    line_bot_api = MessagingApi(api_client)
+                    line_bot_api.reply_message(
+                        ReplyMessageRequest(
+                            reply_token=event.reply_token,
+                            messages=[TextMessage(text=error_message)]
+                        )
                     )
-                )
-        except Exception as reply_error:
-            app.logger.error(f"回覆錯誤訊息失敗：{str(reply_error)}")
+            except Exception as reply_error:
+                app.logger.error(f"回覆錯誤訊息失敗：{str(reply_error)}")
 
 # 🟢 主程式啟動 - 適用於本地開發和 Vercel 部署
 if __name__ == "__main__":
