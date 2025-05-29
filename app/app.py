@@ -60,7 +60,7 @@ def compare_devices(device1, device2):
     try:
         client = openai
         response = client.responses.create(
-            model="GPT-4.1-mini",
+            model="GPT-4.1",
             tools=[{"type": "web_search_preview"}],
             input=prompt
         )
@@ -74,7 +74,7 @@ def get_device_price(device_name):
     
     try:
         response = openai.responses.create(
-            model="GPT-4.1-mini",
+            model="GPT-4.1",
             tools=[{"type": "web_search_preview"}],
             input=prompt
         )
@@ -91,7 +91,7 @@ def get_device_price(device_name):
 def get_upgrade_recommendation(current_phone, upgrade_cycle, requirements, budget):
     prompt = f"""請根據以下資訊，推薦1-3款在台灣上市的手機：\n - 目前使用的手機：{current_phone}\n - 換機週期：{upgrade_cycle}\n - 特定需求：{requirements}\n - 預算：{budget}\n \n 請提供以下資訊：\n 1. 推薦的1-3款手機型號\n 2. 每款手機的優缺點\n 3. 這些手機適合用戶的需求\n 4. 價格範圍（以台幣顯示）\n \n 請確保回覆為純文字，且不包含任何外部連結。"""
     response = client.responses.create(
-        model="GPT-4.1-mini",
+        model="GPT-4.1",
         tools=[{"type": "web_search_preview"}],
         input=prompt
     )
