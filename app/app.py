@@ -840,7 +840,7 @@ def handle_message(event):
 
 # 導入 Web 路由
 try:
-    from web_routes import *
+    import web_routes
 except ImportError:
     logger.warning("Web routes not imported")
 
@@ -849,4 +849,5 @@ if __name__ == "__main__":
     init_database()
     
     # 啟動應用
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

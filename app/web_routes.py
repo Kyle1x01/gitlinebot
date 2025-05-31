@@ -1,6 +1,8 @@
 from flask import jsonify, request
-from app import app, add_to_cart, get_cart_items, remove_from_cart
 import logging
+
+# 避免循環導入
+from app.app import app, add_to_cart, get_cart_items, remove_from_cart
 
 logger = logging.getLogger(__name__)
 
