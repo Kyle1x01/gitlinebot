@@ -171,6 +171,7 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
             temperature=0.5
@@ -216,6 +217,7 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=15000,
             temperature=0.5
@@ -257,6 +259,7 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
             temperature=0.5
@@ -300,6 +303,7 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
             temperature=0.5
@@ -343,6 +347,7 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
             temperature=0.5
@@ -388,6 +393,7 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
             temperature=0.5
@@ -614,6 +620,7 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
         
         response = client.chat.completions.create(
             model="gpt-4.1",
+            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=800,
             temperature=0.5
