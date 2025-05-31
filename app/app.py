@@ -840,7 +840,7 @@ def handle_message(event):
 
 # 導入 Web 路由
 try:
-    import web_routes
+    from . import web_routes
 except ImportError:
     logger.warning("Web routes not imported")
 
