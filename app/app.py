@@ -275,23 +275,7 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -356,23 +340,7 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -444,23 +412,7 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -531,23 +483,7 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -618,23 +554,7 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -706,23 +626,7 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
@@ -1028,34 +932,23 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             messages=messages,
             max_tokens=800,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for real-time information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         # 記錄OpenAI的回應，用於調試
         logger.info(f"OpenAI的回應: {response}")
         
-        # 確保返回值不為None
-        content = response.choices[0].message.content
-        if content is None:
-            return "抱歉，我無法處理您的問題。請嘗試詢問3C產品相關的問題，例如產品規格、價格比較或購買建議。"
-        
-        return content
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，我無法處理您的問題。請嘗試詢問3C產品相關的問題，例如產品規格、價格比較或購買建議。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"追加提問處理失敗: {e}")
