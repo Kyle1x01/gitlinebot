@@ -30,12 +30,19 @@ import urllib.parse
 # 設定語言偵測的隨機種子，確保結果一致性
 DetectorFactory.seed = 0
 
-# 載入環境變數
-load_dotenv()
-
 # 設定日誌
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 載入環境變數
+try:
+    # 嘗試載入.env文件（本地開發用）
+    load_dotenv()
+    logger.info("已從.env文件載入環境變數")
+except Exception as e:
+    # 如果.env文件不存在或載入失敗，忽略錯誤，使用系統環境變數
+    logger.info("未找到.env文件或載入失敗，將使用系統環境變數: %s", str(e))
+    pass
 
 app = Flask(__name__)
 
@@ -240,7 +247,8 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -288,7 +296,8 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -343,7 +352,8 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -397,7 +407,8 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -451,7 +462,8 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -506,7 +518,8 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -745,7 +758,8 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             model="gpt-4.1",
             messages=messages,
             max_tokens=800,
-            temperature=0.3
+            temperature=0.3,
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content

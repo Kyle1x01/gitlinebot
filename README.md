@@ -25,7 +25,7 @@
    - Name: 您的應用名稱
    - Environment: Python 3
    - Build Command: `pip install -r requirements.txt`
-   - Start Command: `gunicorn -w 4 'app.app:app'`
+   - Start Command: `gunicorn wsgi:application`
 4. 添加以下環境變數：
    - LINE_CHANNEL_SECRET: 您的 LINE Channel Secret
    - LINE_CHANNEL_ACCESS_TOKEN: 您的 LINE Channel Access Token
