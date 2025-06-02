@@ -267,6 +267,9 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -291,7 +294,20 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取產品價格資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"價格查詢失敗: {e}")
@@ -332,6 +348,9 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -356,7 +375,20 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取產品規格資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"產品資訊查詢失敗: {e}")
@@ -404,6 +436,9 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -428,7 +463,20 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取產品比較資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"產品比較失敗: {e}")
@@ -475,6 +523,9 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -499,7 +550,20 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取產品推薦資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"升級推薦失敗: {e}")
@@ -546,6 +610,9 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -570,7 +637,20 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取排行榜資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"排行榜查詢失敗: {e}")
@@ -618,6 +698,9 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
+        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
@@ -642,7 +725,20 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
+        
+        # 安全地獲取回應內容
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0:
+            message = response.choices[0].message
+            if message and hasattr(message, 'content') and message.content is not None:
+                return message.content
+            else:
+                logger.error("OpenAI回應中沒有content或content為None")
+                return "抱歉，無法獲取產品評價資訊，請稍後再試。"
+        else:
+            logger.error("OpenAI回應格式異常或為空")
+            return "抱歉，處理您的請求時發生錯誤，請稍後再試。"
         
     except Exception as e:
         logger.error(f"評價彙整失敗: {e}")
