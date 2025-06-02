@@ -58,7 +58,31 @@ handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
 # OpenAI 設定
 from openai import OpenAI
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# 檢查OpenAI API Key是否有效
+def check_openai_api_key(api_key: str) -> bool:
+    """檢查OpenAI API Key是否有效"""
+    if not api_key:
+        logger.error("未設置OpenAI API Key，請在環境變數中設置OPENAI_API_KEY")
+        return False
+    
+    try:
+        # 嘗試創建一個簡單的API請求來驗證key
+        test_client = OpenAI(api_key=api_key)
+        test_client.models.list()
+        logger.info("OpenAI API Key 驗證成功")
+        return True
+    except Exception as e:
+        logger.error(f"OpenAI API Key 無效或API請求失敗: {e}")
+        return False
+
+# 驗證API Key
+openai_api_key = os.getenv('OPENAI_API_KEY')
+api_key_valid = check_openai_api_key(openai_api_key)
+if not api_key_valid:
+    logger.warning("程式將繼續執行，但OpenAI相關功能可能無法正常工作")
+
+client = OpenAI(api_key=openai_api_key)
 
 # 全域變數
 user_conversations = {}
