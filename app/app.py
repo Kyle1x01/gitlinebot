@@ -248,7 +248,23 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -297,7 +313,23 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -353,7 +385,23 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -408,7 +456,23 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -463,7 +527,23 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -519,7 +599,23 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -625,6 +721,32 @@ def detect_intent_and_respond(user_input: str, user_id: str) -> str:
     """智能識別用戶意圖並提供對應回應"""
     user_input_lower = user_input.lower()
     
+    # 檢查是否使用數字快速選擇
+    number_match = re.match(r'^([1-6])\s+(.+)$', user_input.strip())
+    if number_match:
+        function_number = number_match.group(1)
+        query_content = number_match.group(2)
+        
+        # 根據數字選擇對應功能
+        if function_number == '1':  # 規格查詢
+            return get_3c_product_info(query_content, user_id)
+        elif function_number == '2':  # 價格查詢
+            return get_device_price(query_content, user_id)
+        elif function_number == '3':  # 產品比較
+            products = extract_comparison_products(query_content)
+            if len(products) >= 2:
+                return compare_devices(products[0], products[1], user_id)
+            else:
+                return "請提供要比較的兩個產品名稱，例如：'3 iPhone vs Samsung'"
+        elif function_number == '4':  # 產品推薦
+            return get_upgrade_recommendation_single(query_content, user_id)
+        elif function_number == '5':  # 熱門排行
+            category = extract_product_category(query_content)
+            return get_popular_ranking(category or '3C產品', user_id)
+        elif function_number == '6':  # 產品評價
+            return get_product_reviews(query_content, user_id)
+    
+    # 如果不是數字選擇，使用關鍵字判斷
     # 價格查詢意圖
     if any(keyword in user_input_lower for keyword in ['價格', '多少錢', 'price', '售價', '報價']):
         product_name = extract_product_name(user_input)
@@ -759,7 +881,23 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             messages=messages,
             max_tokens=800,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            tools=[{
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query"
+                            }
+                        },
+                        "required": ["query"]
+                    }
+                }
+            }]
         )
         
         return response.choices[0].message.content
@@ -822,23 +960,43 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
     
     elif any(keyword in user_input_lower for keyword in ['說明', 'help', '幫助']):
         help_messages = {
-            'zh-tw': """🤖 3C小助手手使用說明：
-產品規格查詢:"iPhone 13規格"
-產品價格查詢:"iPhone 13價格"
-產品比較："iPhone 13 vs Samsung S21"
-推薦產品："推薦2萬元手機" / "筆電推薦"
-熱門排行："手機排行榜" / "筆電排行榜"
-產品評價："iPhone 13評價" / "MacBook評測"
+            'zh-tw': """🤖 3C小助手使用說明：
+
+主要功能：（可用數字快速選擇）
+1️⃣ 產品規格查詢
+   用法："1 產品名稱" 或 "產品名稱規格"
+   例如："1 iPhone 15" 或 "iPhone 15規格"
+
+2️⃣ 產品價格查詢
+   用法："2 產品名稱" 或 "產品名稱價格"
+   例如："2 iPhone 15" 或 "iPhone 15價格"
+
+3️⃣ 產品比較
+   用法："3 產品1 vs 產品2" 或直接輸入比較
+   例如："3 iPhone 15 vs S23" 或 "iPhone vs Samsung"
+
+4️⃣ 產品推薦
+   用法："4 預算/需求" 或直接描述需求
+   例如："4 2萬元筆電" 或 "推薦2萬元筆電"
+
+5️⃣ 熱門排行
+   用法："5 產品類別" 或 "類別排行榜"
+   例如："5 手機" 或 "手機排行榜"
+
+6️⃣ 產品評價
+   用法："6 產品名稱" 或 "產品名稱評價"
+   例如："6 iPhone 15" 或 "iPhone 15評價"
 
 🛒 購物車功能：
-新增："新增至購物車 iPhone 13"
-查看："顯示我的購物車" / "我的購物車"
-移除："移除 iPhone 13"
-清空："清空購物車"
+- 新增："新增至購物車 商品名稱"
+- 查看："顯示購物車" 或 "我的購物車"
+- 移除："移除 商品名稱"
+- 清空："清空購物車"
 
 ❓ 其他指令：
-"說明" - 顯示此說明
-"清除對話" - 清除對話歷史""",
+- "說明" - 顯示此說明
+- "清除對話" - 清除對話歷史
+- "離開" - 返回主選單""",
             'en': """🤖 3C Smart Assistant Help:
 
 💬 Natural Conversation:
@@ -858,6 +1016,11 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
 • Auto-detect your language
 • Support Traditional Chinese, English, Japanese
 
+❓ Other Commands:
+• "help" - Show this help
+• "clear conversation" - Clear chat history
+• "exit" or "back" - Return to main menu
+
 ✨ New: Real-time product information and pricing!"""
         }
         return help_messages.get(detected_language, help_messages['zh-tw'])
@@ -866,6 +1029,27 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
         if user_id in user_conversations:
             user_conversations[user_id] = []
         return "🗑️ 已清除對話歷史"
+    
+    elif any(keyword in user_input_lower for keyword in ['離開', 'exit', '返回', '回主選單', 'back', 'menu']):
+        # 返回歡迎訊息，讓用戶回到主選單
+        welcome_text = """🎉 歡迎回到3C小助手主選單！
+
+功能選單：
+1️⃣ 產品規格查詢 - 例："1 iPhone 15" 或 "iPhone 15規格"
+2️⃣ 產品價格查詢 - 例："2 iPhone 15" 或 "iPhone 15價格"
+3️⃣ 產品比較 - 例："3 iPhone 15 vs S23" 或直接輸入比較
+4️⃣ 產品推薦 - 例："4 2萬元筆電" 或 "推薦2萬元筆電"
+5️⃣ 熱門排行 - 例："5 手機" 或 "手機排行榜"
+6️⃣ 產品評價 - 例："6 iPhone 15" 或 "iPhone 15評價"
+
+🛒 購物車功能：
+- 新增："新增至購物車 商品名稱"
+- 查看："顯示購物車"
+- 移除："移除 商品名稱"
+
+❓ 輸入「說明」查看完整功能說明
+"""
+        return welcome_text
     
     # 如果不是特殊指令，返回 None 讓其他函數處理
     return None
@@ -920,16 +1104,22 @@ def health_check():
 # 事件處理器
 @handler.add(FollowEvent)
 def handle_follow(event):
-    welcome_text = """🎉 歡迎使用3吸小助手手！
+    welcome_text = """🎉 歡迎使用3C小助手！
 
+功能選單：
+1️⃣ 產品規格查詢 - 例："1 iPhone 15" 或 "iPhone 15規格"
+2️⃣ 產品價格查詢 - 例："2 iPhone 15" 或 "iPhone 15價格"
+3️⃣ 產品比較 - 例："3 iPhone 15 vs S23" 或直接輸入比較
+4️⃣ 產品推薦 - 例："4 2萬元筆電" 或 "推薦2萬元筆電"
+5️⃣ 熱門排行 - 例："5 手機" 或 "手機排行榜"
+6️⃣ 產品評價 - 例："6 iPhone 15" 或 "iPhone 15評價"
 
-功能介紹：
-"iPhone 15價格" - 查詢價格
-"推薦2萬元筆電" - 取得推薦
-"iPhone vs Samsung" - 產品比較
-"手機排行榜" - 熱門排行
-"新增至購物車 MacBook" - 購物車
-"說明" - 查看完整功能
+🛒 購物車功能：
+- 新增："新增至購物車 商品名稱"
+- 查看："顯示購物車"
+- 移除："移除 商品名稱"
+
+❓ 輸入「說明」查看完整功能說明
 """
     
     line_bot_api.reply_message(
