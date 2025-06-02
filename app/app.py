@@ -810,7 +810,13 @@ def detect_intent_and_respond(user_input: str, user_id: str) -> str:
         return get_3c_product_info(product_name, user_id)
     
     # 使用GPT處理其他對話
-    return handle_follow_up_question(user_input, user_id)
+    response = handle_follow_up_question(user_input, user_id)
+    
+    # 確保返回值不為None
+    if response is None:
+        return "抱歉，我無法理解您的問題。請嘗試詢問3C產品相關的問題，例如產品規格、價格比較或購買建議。"
+    
+    return response
 
 # 輔助函數：提取產品名稱
 def extract_product_name(text: str) -> str:
@@ -866,30 +872,30 @@ def extract_product_category(text: str) -> str:
 # 追加提問處理（整合網路搜尋）
 def handle_follow_up_question(user_input: str, user_id: str) -> str:
     """處理追加提問，整合網路搜尋"""
-    history = get_conversation_history(user_id, 6)
-    
-    # 如果是3C相關問題，進行網路搜尋
-    if any(keyword in user_input.lower() for keyword in ['3c', '手機', '筆電', '電腦', '相機', '耳機', 'iphone', 'samsung', 'apple', 'asus', 'acer']):
-        search_context = search_web(f"{user_input} 3C", 3)
-        web_context = ""
-        if search_context:
-            web_context = "\n\n相關資訊：\n"
-            for result in search_context:
-                web_context += f"- {result['snippet']}\n"
-    else:
-        web_context = ""
-    
-    system_message = {
-        "role": "system",
-        "content": (
-            "你是專業的3C產品助理。請根據對話歷史和提供的資訊回答用戶的追加提問。"
-            "請以繁體中文回答，語氣專業且親切。"
-            "如果問題與3C產品無關，請禮貌地引導用戶回到3C產品相關話題。"
-            "回答請控制在800字以內。"
-        )
-    }
-    
     try:
+        history = get_conversation_history(user_id, 6)
+        
+        # 如果是3C相關問題，進行網路搜尋
+        if any(keyword in user_input.lower() for keyword in ['3c', '手機', '筆電', '電腦', '相機', '耳機', 'iphone', 'samsung', 'apple', 'asus', 'acer']):
+            search_context = search_web(f"{user_input} 3C", 3)
+            web_context = ""
+            if search_context:
+                web_context = "\n\n相關資訊：\n"
+                for result in search_context:
+                    web_context += f"- {result['snippet']}\n"
+        else:
+            web_context = ""
+        
+        system_message = {
+            "role": "system",
+            "content": (
+                "你是專業的3C產品助理。請根據對話歷史和提供的資訊回答用戶的追加提問。"
+                "請以繁體中文回答，語氣專業且親切。"
+                "如果問題與3C產品無關，請禮貌地引導用戶回到3C產品相關話題。"
+                "回答請控制在800字以內。"
+            )
+        }
+        
         messages = [system_message]
         
         # 加入對話歷史
@@ -924,7 +930,12 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             }]
         )
         
-        return response.choices[0].message.content
+        # 確保返回值不為None
+        content = response.choices[0].message.content
+        if content is None:
+            return "抱歉，我無法處理您的問題。請嘗試詢問3C產品相關的問題，例如產品規格、價格比較或購買建議。"
+        
+        return content
         
     except Exception as e:
         logger.error(f"追加提問處理失敗: {e}")
@@ -1164,6 +1175,10 @@ def handle_message(event):
         
         # 處理用戶訊息
         response = handle_user_message(user_input, user_id)
+        
+        # 確保response不為None
+        if response is None:
+            response = "抱歉，我無法理解您的請求，請嘗試其他問題或輸入「說明」查看使用指南。"
         
         # 回覆訊息
         line_bot_api.reply_message(
