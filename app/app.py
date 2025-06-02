@@ -743,6 +743,9 @@ def remove_from_cart(user_id: str, product_name: str) -> bool:
 # 意圖識別和回應處理
 def detect_intent_and_respond(user_input: str, user_id: str) -> str:
     """智能識別用戶意圖並提供對應回應"""
+    # 記錄原始用戶輸入，用於調試
+    logger.info(f"用戶輸入: {user_input}")
+    
     user_input_lower = user_input.lower()
     
     # 檢查是否使用數字快速選擇
@@ -750,6 +753,9 @@ def detect_intent_and_respond(user_input: str, user_id: str) -> str:
     if number_match:
         function_number = number_match.group(1)
         query_content = number_match.group(2)
+        
+        # 記錄數字選擇，用於調試
+        logger.info(f"數字選擇: {function_number}, 查詢內容: {query_content}")
         
         # 根據數字選擇對應功能
         if function_number == '1':  # 規格查詢
@@ -775,45 +781,54 @@ def detect_intent_and_respond(user_input: str, user_id: str) -> str:
     if any(keyword in user_input_lower for keyword in ['價格', '多少錢', 'price', '售價', '報價']):
         product_name = extract_product_name(user_input)
         if product_name:
+            logger.info(f"價格查詢意圖，產品名稱: {product_name}")
             return get_device_price(product_name, user_id)
     
     # 產品比較意圖
     elif any(keyword in user_input_lower for keyword in ['比較', 'vs', '對比', 'compare', '差別', '差異']):
         products = extract_comparison_products(user_input)
         if len(products) >= 2:
+            logger.info(f"產品比較意圖，產品: {products[0]} vs {products[1]}")
             return compare_devices(products[0], products[1], user_id)
     
     # 推薦意圖
     elif any(keyword in user_input_lower for keyword in ['推薦', '建議', 'recommend', '選擇', '買什麼']):
+        logger.info(f"推薦意圖，查詢內容: {user_input}")
         return get_upgrade_recommendation_single(user_input, user_id)
     
     # 排行榜意圖
     elif any(keyword in user_input_lower for keyword in ['排行榜', '排名', 'ranking', '熱門', '暢銷']):
         category = extract_product_category(user_input)
+        logger.info(f"排行榜意圖，類別: {category}")
         return get_popular_ranking(category or '3C產品', user_id)
     
     # 評價意圖
     elif any(keyword in user_input_lower for keyword in ['評價', '評測', 'review', '心得', '使用感想']):
         product_name = extract_product_name(user_input)
         if product_name:
+            logger.info(f"評價意圖，產品名稱: {product_name}")
             return get_product_reviews(product_name, user_id)
     
     # 規格查詢意圖
     elif any(keyword in user_input_lower for keyword in ['規格', '參數', 'spec', '配置', '詳細資訊']):
         product_name = extract_product_name(user_input)
         if product_name:
+            logger.info(f"規格查詢意圖，產品名稱: {product_name}")
             return get_3c_product_info(product_name, user_id)
     
     # 如果沒有明確意圖，使用通用3C產品查詢
     product_name = extract_product_name(user_input)
     if product_name:
+        logger.info(f"通用產品查詢，產品名稱: {product_name}")
         return get_3c_product_info(product_name, user_id)
     
     # 使用GPT處理其他對話
+    logger.info(f"無明確意圖，使用GPT處理追加提問: {user_input}")
     response = handle_follow_up_question(user_input, user_id)
     
     # 確保返回值不為None
     if response is None:
+        logger.warning(f"GPT回應為None，使用預設回應")
         return "抱歉，我無法理解您的問題。請嘗試詢問3C產品相關的問題，例如產品規格、價格比較或購買建議。"
     
     return response
@@ -875,6 +890,9 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
     try:
         history = get_conversation_history(user_id, 6)
         
+        # 記錄原始用戶輸入，確保不會丟失
+        original_user_input = user_input
+        
         # 如果是3C相關問題，進行網路搜尋
         if any(keyword in user_input.lower() for keyword in ['3c', '手機', '筆電', '電腦', '相機', '耳機', 'iphone', 'samsung', 'apple', 'asus', 'acer']):
             search_context = search_web(f"{user_input} 3C", 3)
@@ -903,8 +921,11 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             messages.append({"role": msg["role"], "content": msg["content"]})
         
         # 組合用戶問題和搜尋結果
-        user_content = f"{user_input}{web_context}"
+        user_content = f"{original_user_input}{web_context}"
         messages.append({"role": "user", "content": user_content})
+        
+        # 記錄發送到OpenAI的訊息，用於調試
+        logger.info(f"發送到OpenAI的訊息: {json.dumps(messages, ensure_ascii=False)}")
         
         response = client.chat.completions.create(
             model="gpt-4.1",
@@ -929,6 +950,9 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
                 }
             }]
         )
+        
+        # 記錄OpenAI的回應，用於調試
+        logger.info(f"OpenAI的回應: {response}")
         
         # 確保返回值不為None
         content = response.choices[0].message.content
@@ -1093,8 +1117,12 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
 def handle_user_message(user_input: str, user_id: str) -> str:
     """處理用戶訊息的主函數"""
     try:
+        # 記錄原始用戶輸入，用於調試
+        logger.info(f"處理用戶訊息: user_id={user_id}, message='{user_input}'")
+        
         # 偵測語言
         detected_language = detect_language(user_input)
+        logger.info(f"偵測到的語言: {detected_language}")
         
         # 記錄用戶輸入
         add_to_conversation(user_id, 'user', user_input)
@@ -1102,6 +1130,7 @@ def handle_user_message(user_input: str, user_id: str) -> str:
         # 先嘗試解析特殊指令（購物車、說明等）
         command_response = parse_command(user_input, user_id, detected_language)
         if command_response:
+            logger.info(f"特殊指令處理結果: {command_response[:50]}...")
             add_to_conversation(user_id, 'assistant', command_response)
             return command_response
         
@@ -1109,6 +1138,7 @@ def handle_user_message(user_input: str, user_id: str) -> str:
         response = detect_intent_and_respond(user_input, user_id)
         
         # 記錄助手回應
+        logger.info(f"助手回應: {response[:50]}...")
         add_to_conversation(user_id, 'assistant', response)
         
         return response
@@ -1170,6 +1200,9 @@ def handle_message(event):
         user_input = event.message.text.strip()
         user_id = event.source.user_id
         
+        # 記錄LINE訊息，用於調試
+        logger.info(f"收到LINE訊息: user_id={user_id}, message='{user_input}'")
+        
         # 清理舊對話
         clear_old_conversations()
         
@@ -1179,6 +1212,9 @@ def handle_message(event):
         # 確保response不為None
         if response is None:
             response = "抱歉，我無法理解您的請求，請嘗試其他問題或輸入「說明」查看使用指南。"
+        
+        # 記錄回覆訊息，用於調試
+        logger.info(f"回覆LINE訊息: {response[:50]}...")
         
         # 回覆訊息
         line_bot_api.reply_message(
