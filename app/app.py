@@ -24,6 +24,8 @@ from langdetect import detect, DetectorFactory
 import logging
 import requests
 from typing import Dict, List, Optional, Tuple
+from bs4 import BeautifulSoup
+import urllib.parse
 
 # 設定語言偵測的隨機種子，確保結果一致性
 DetectorFactory.seed = 0
@@ -54,6 +56,67 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 # 全域變數
 user_conversations = {}
 product_database = {}
+
+# 新增：網路搜尋功能
+def search_web(query: str, num_results: int = 5) -> List[Dict]:
+    """使用Google搜尋API或其他搜尋引擎搜尋網路資料"""
+    try:
+        # 使用DuckDuckGo搜尋（免費且無需API key）
+        search_url = f"https://duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(search_url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            results = []
+            
+            # 解析搜尋結果
+            for result in soup.find_all('div', class_='result')[:num_results]:
+                title_elem = result.find('a', class_='result__a')
+                snippet_elem = result.find('a', class_='result__snippet')
+                
+                if title_elem and snippet_elem:
+                    results.append({
+                        'title': title_elem.get_text().strip(),
+                        'snippet': snippet_elem.get_text().strip(),
+                        'url': title_elem.get('href', '')
+                    })
+            
+            return results
+        
+        return []
+    except Exception as e:
+        logger.error(f"網路搜尋失敗: {e}")
+        return []
+
+def search_product_info(product_name: str) -> str:
+    """搜尋產品相關資訊"""
+    try:
+        # 搜尋產品規格和價格
+        search_queries = [
+            f"{product_name} 規格 價格 台灣",
+            f"{product_name} 評測 開箱",
+            f"{product_name} pchome momo 蝦皮 價格"
+        ]
+        
+        all_results = []
+        for query in search_queries:
+            results = search_web(query, 3)
+            all_results.extend(results)
+        
+        # 整理搜尋結果
+        if all_results:
+            search_context = "\n\n搜尋到的相關資訊：\n"
+            for i, result in enumerate(all_results[:8], 1):
+                search_context += f"{i}. {result['title']}\n{result['snippet']}\n\n"
+            return search_context
+        
+        return ""
+    except Exception as e:
+        logger.error(f"產品資訊搜尋失敗: {e}")
+        return ""
 
 # 資料庫初始化
 def init_database():
@@ -139,42 +202,45 @@ def clear_old_conversations():
         if not user_conversations[user_id]:
             del user_conversations[user_id]
 
-
-
-# 修正後的功能：產品價格查詢（新增二手價格，保持原有 OpenAI 設定）
+# 修正後的功能：產品價格查詢（整合網路搜尋）
 def get_device_price(device_name: str, user_id: str = None) -> str:
-    """查詢設備價格資訊，包含新品和二手價格"""
+    """查詢設備價格資訊，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
+    # 搜尋最新價格資訊
+    search_context = search_product_info(device_name)
+    
     system_message = {
         "role": "system",
         "content": (
             "你是專業的3C產品價格查詢助理。預設以繁體中文回答，語氣專業且親切。"
-            "請提供準確的價格資訊，包含："
+            "請根據提供的搜尋資料提供準確的價格資訊，包含："
             "1. 新品價格：不同通路的價格比較（PChome、Momo 購物網、蝦皮商城、Yahoo奇摩購物、神腦線上、順發3C、燦坤、原價屋）"
-            "2. 二手價格：參考各大二手交易平台（如蝦皮拍賣、露天拍賣、Facebook Marketplace、旋轉拍賣、Yahoo拍賣等）的行情價格"
-            "3. 二手價格應包含不同成色的價格區間（如：全新未拆、近全新、良好、普通等）"
-            "回答格式請使用條列式，清楚區分新品價格和二手價格。"
+            "2. 二手價格：參考各大二手交易平台的行情價格"
+            "3. 二手價格應包含不同成色的價格區間"
+            "回答格式請使用條列式清楚標示前三個網站最便宜的價格，清楚區分新品價格和二手價格。"
             "請控制回答在1000字以內，不要使用表情符號或外部連結。"
-            "產品必須是在台灣主要線上通路有販售的商品"
+            "如果搜尋資料不足，請明確說明並建議用戶提供更具體的產品型號。"
             "請以適合line訊息的方式輸出（需有易讀性）"
         )
     }
     
     try:
+        # 組合搜尋結果和用戶問題
+        user_content = f"請查詢 {device_name} 的價格資訊{search_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": f"請查詢 {device_name} 的價格資訊，包含新品和二手價格"}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -182,45 +248,47 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
     except Exception as e:
         logger.error(f"價格查詢失敗: {e}")
         return "抱歉，目前無法查詢價格資訊，請稍後再試。如需協助，請提供更具體的產品型號。"
-        
-    except Exception as e:
-        logger.error(f"價格查詢失敗: {e}")
-        return "抱歉，目前無法查詢價格資訊，請稍後再試。如需協助，請提供更具體的產品型號。"
 
-# 原有功能：3C產品規格查詢
+# 原有功能：3C產品規格查詢（整合網路搜尋）
 def get_3c_product_info(product_name: str, user_id: str = None) -> str:
-    """查詢3C產品詳細規格資訊"""
+    """查詢3C產品詳細規格資訊，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
+    # 搜尋最新產品資訊
+    search_context = search_product_info(product_name)
+    
     system_message = {
         "role": "system",
         "content": (
             "你是一個專業的3C產品規格資訊助理。預設以繁體中文回答，使用者若有其他語言需求則更換成使用者所需語言，語氣專業且親切。"
-            "請提供詳細且準確的產品規格資訊，包括："
+            "請根據提供的搜尋資料提供詳細且準確的產品規格資訊，包括："
             "1. 產品基本資訊（品牌、型號、發布時間）"
             "2. 核心規格（處理器、記憶體、儲存空間等）"
             "3. 特色功能和優缺點分析"
             "4. 適用族群建議"
-            "產品產品必須是在台灣主要線上通路（如 PChome、Momo 購物網、蝦皮商城、Yahoo奇摩購物、神腦線上、順發3C、燦坤、原價屋）有販售的商品。"
-            "請以適合LINE訊息的方式輸出（需有易讀性）。 請確保每個內容都需要查詢過確保回答的正確性。"
+            "如果搜尋資料不足，請明確說明並建議用戶提供更具體的產品型號。"
+            "請條列式清楚列出規格，以適合LINE訊息的方式輸出（需有易讀性）。"
             "回答請控制在1000字以內，不要使用表情符號、外部連結或表格格式。"
+            "根據產品官網所提供的資訊，回答請盡量詳細。"
         )
     }
     
     try:
+        # 組合搜尋結果和用戶問題
+        user_content = f"請提供 {product_name} 的詳細規格資訊{search_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": f"請提供 {product_name} 的詳細規格資訊"}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
-            max_tokens=15000,
-            temperature=0.5
+            max_tokens=1500,
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -229,13 +297,24 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
         logger.error(f"產品資訊查詢失敗: {e}")
         return "抱歉，目前無法取得產品資訊，請稍後再試。建議您：\n1. 確認產品名稱是否正確\n2. 稍後重新查詢\n3. 聯繫客服取得協助"
 
-# 原有功能：產品比較
+# 原有功能：產品比較（整合網路搜尋）
 def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
-    """比較兩個設備的功能和規格"""
+    """比較兩個設備的功能和規格，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+    
+    # 搜尋兩個產品的比較資訊
+    search_context1 = search_product_info(device1)
+    search_context2 = search_product_info(device2)
+    comparison_search = search_web(f"{device1} vs {device2} 比較", 3)
+    
+    comparison_context = ""
+    if comparison_search:
+        comparison_context = "\n\n比較資訊：\n"
+        for result in comparison_search:
+            comparison_context += f"- {result['title']}: {result['snippet']}\n"
     
     system_message = {
         "role": "system",
@@ -247,22 +326,24 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             "額外比較項目（螢幕更新率、作業系統版本、快充支援、相機功能、功率、效能）。"
             "最後提供簡短分析，說明各自適合的使用者類型（拍照、遊戲、預算等）。"
             "請將回覆控制在1000字以內，且不要使用表格、Emoji 或加入外部連結。"
-            "請以適合LINE訊息的方式輸出（需有易讀性）。 請確保每個內容都需要查詢過確保回答的正確性。"
-            "比較產品必須有在官網或者台灣主要線上通路（如 PChome、Momo 購物網、蝦皮商城、Yahoo奇摩購物、神腦線上、順發3C、燦坤、原價屋）有販售的商品。"
+            "請以適合LINE訊息的方式輸出（需有易讀性）。"
+            "請以官網資訊為準，盡可能詳細。"
         )
     }
     
     try:
+        # 組合所有搜尋結果
+        user_content = f"請比較 {device1} 和 {device2} 的差異{search_context1}{search_context2}{comparison_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": f"請比較 {device1} 和 {device2} 的差異"}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -271,13 +352,21 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
         logger.error(f"產品比較失敗: {e}")
         return "抱歉，目前無法進行產品比較，請稍後再試或提供更具體的產品型號。"
 
-# 原有功能：升級推薦
+# 原有功能：升級推薦（整合網路搜尋）
 def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> str:
-    """根據用戶需求提供升級推薦"""
+    """根據用戶需求提供升級推薦，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+    
+    # 搜尋推薦相關資訊
+    search_context = search_web(f"{user_input} 推薦 2024", 5)
+    recommendation_context = ""
+    if search_context:
+        recommendation_context = "最新推薦資訊："
+        for result in search_context:
+            recommendation_context += f"- {result['title']}: {result['snippet']}\n"
     
     system_message = {
         "role": "system",
@@ -288,25 +377,27 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             "2. 預算範圍和性價比"
             "3. 產品的實際可用性和評價"
             "請提供具體的產品型號、規格重點、價格區間，並說明推薦理由。"
-            "產品篩選： 推薦產品必須是在台灣主要線上通路（如 PChome、Momo 購物網、蝦皮商城、Yahoo奇摩購物、神腦線上、順發3C、燦坤、原價屋）有販售的商品。"
+            "產品篩選： 推薦產品必須是在台灣主要線上通路有販售的商品。"
             "回答請控制在1000字以內，語氣專業且親切。"
-            "請以適合LINE訊息的方式輸出（需有易讀性）。 請確保每個內容都需要查詢過確保回答的正確性。"
+            "條列式列出產品，請以適合LINE訊息的方式輸出（需有易讀性）。"
             "僅提供文字建議，不要附帶任何外部連結或表情符號。"
-            "回覆開頭可簡要說明推薦依據，接著以清單形式列出各項產品建議，確保內容條理清晰便於閱讀。"
+            "結尾以清單形式列出各項產品差異，確保內容條理清晰便於閱讀。"
         )
     }
     
     try:
+        # 組合搜尋結果和用戶問題
+        user_content = f"{user_input}{recommendation_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": user_input}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -315,13 +406,21 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
         logger.error(f"升級推薦失敗: {e}")
         return "抱歉，目前無法提供升級推薦，請稍後再試。建議您提供更詳細的需求描述以獲得更精準的推薦。"
 
-# 原有功能：熱門排行榜
+# 原有功能：熱門排行榜（整合網路搜尋）
 def get_popular_ranking(category: str, user_id: str = None) -> str:
-    """取得熱門產品排行榜"""
+    """取得熱門產品排行榜，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+    
+    # 搜尋最新排行榜資訊
+    search_context = search_web(f"{category} 排行榜 2024 推薦", 5)
+    ranking_context = ""
+    if search_context:
+        ranking_context = "\n\n最新排行榜資訊：\n"
+        for result in search_context:
+            ranking_context += f"- {result['title']}: {result['snippet']}\n"
     
     system_message = {
         "role": "system",
@@ -341,16 +440,18 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
     }
     
     try:
+        # 組合搜尋結果和用戶問題
+        user_content = f"請提供 {category} 的熱門排行榜{ranking_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": f"請提供 {category} 的熱門排行榜"}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -359,13 +460,21 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
         logger.error(f"排行榜查詢失敗: {e}")
         return "抱歉，目前無法取得排行榜資訊，請稍後再試或指定更具體的產品類別。"
 
-# 原有功能：產品評價彙整
+# 原有功能：產品評價彙整（整合網路搜尋）
 def get_product_reviews(product_name: str, user_id: str = None) -> str:
-    """彙整產品評價和使用心得"""
+    """彙整產品評價和使用心得，整合網路搜尋結果"""
     conversation_history = []
     if user_id:
         history = get_conversation_history(user_id, 4)
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+    
+    # 搜尋評價相關資訊
+    search_context = search_web(f"{product_name} 評價 心得 PTT Mobile01", 5)
+    review_context = ""
+    if search_context:
+        review_context = "\n\n評價資訊：\n"
+        for result in search_context:
+            review_context += f"- {result['title']}: {result['snippet']}\n"
     
     system_message = {
         "role": "system",
@@ -379,7 +488,6 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             "5. 購買建議和注意事項"
             "6. 用戶評價趨勢"
             "7. 購買建議"
-            "基於PTT、Mobile01等討論區和評測網站資訊。"
             "請綜合專業評測、用戶評價、論壇討論等多方資訊。"
             "保持客觀中立，提供實用的參考資訊。回答控制在1000字以內。"
             "請以適合LINE訊息的方式輸出（需有易讀性）"
@@ -387,16 +495,18 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
     }
     
     try:
+        # 組合搜尋結果和用戶問題
+        user_content = f"請彙整 {product_name} 的評價和使用心得{review_context}"
+        
         messages = [system_message] + conversation_history + [
-            {"role": "user", "content": f"請彙整 {product_name} 的評價和使用心得"}
+            {"role": "user", "content": user_content}
         ]
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=1500,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -594,15 +704,26 @@ def extract_product_category(text: str) -> str:
     
     return '3C產品'
 
-# 追加提問處理
+# 追加提問處理（整合網路搜尋）
 def handle_follow_up_question(user_input: str, user_id: str) -> str:
-    """處理追加提問"""
+    """處理追加提問，整合網路搜尋"""
     history = get_conversation_history(user_id, 6)
+    
+    # 如果是3C相關問題，進行網路搜尋
+    if any(keyword in user_input.lower() for keyword in ['3c', '手機', '筆電', '電腦', '相機', '耳機', 'iphone', 'samsung', 'apple', 'asus', 'acer']):
+        search_context = search_web(f"{user_input} 3C", 3)
+        web_context = ""
+        if search_context:
+            web_context = "\n\n相關資訊：\n"
+            for result in search_context:
+                web_context += f"- {result['snippet']}\n"
+    else:
+        web_context = ""
     
     system_message = {
         "role": "system",
         "content": (
-            "你是專業的3C產品助理。請根據對話歷史回答用戶的追加提問。"
+            "你是專業的3C產品助理。請根據對話歷史和提供的資訊回答用戶的追加提問。"
             "請以繁體中文回答，語氣專業且親切。"
             "如果問題與3C產品無關，請禮貌地引導用戶回到3C產品相關話題。"
             "回答請控制在800字以內。"
@@ -616,14 +737,15 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
         for msg in history:
             messages.append({"role": msg["role"], "content": msg["content"]})
         
-        messages.append({"role": "user", "content": user_input})
+        # 組合用戶問題和搜尋結果
+        user_content = f"{user_input}{web_context}"
+        messages.append({"role": "user", "content": user_content})
         
         response = client.chat.completions.create(
             model="gpt-4.1",
-            tools=[{"type": "web_search_preview"}],
             messages=messages,
             max_tokens=800,
-            temperature=0.5
+            temperature=0.3
         )
         
         return response.choices[0].message.content
@@ -686,7 +808,7 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
     
     elif any(keyword in user_input_lower for keyword in ['說明', 'help', '幫助']):
         help_messages = {
-            'zh-tw': """🤖 3吸小助手手使用說明：
+            'zh-tw': """🤖 3C小助手手使用說明：
 產品規格查詢:"iPhone 13規格"
 產品價格查詢:"iPhone 13價格"
 產品比較："iPhone 13 vs Samsung S21"
@@ -720,7 +842,9 @@ def parse_command(user_input: str, user_id: str, detected_language: str) -> str:
 
 🌐 Multi-language Support:
 • Auto-detect your language
-• Support Traditional Chinese, English, Japanese"""
+• Support Traditional Chinese, English, Japanese
+
+✨ New: Real-time product information and pricing!"""
         }
         return help_messages.get(detected_language, help_messages['zh-tw'])
     
@@ -782,23 +906,17 @@ def health_check():
 # 事件處理器
 @handler.add(FollowEvent)
 def handle_follow(event):
-    welcome_text = """🎉 歡迎使用3C智能助手！
+    welcome_text = """🎉 歡迎使用3吸小助手手！
 
-✨ 全新體驗：
-• 🤖 智能對話：直接詢問產品資訊
-• 🛒 購物車：管理您的心儀商品
-• 🌐 多語言：自動偵測語言回應
-• 📊 即時資訊：整合多個資料來源
 
-🔍 試試這些功能：
-• "iPhone 15價格" - 查詢價格
-• "推薦2萬元筆電" - 取得推薦
-• "iPhone vs Samsung" - 產品比較
-• "手機排行榜" - 熱門排行
-• "新增至購物車 MacBook" - 購物車
-• "說明" - 查看完整功能
-
-讓我們開始探索3C世界吧！ 🚀"""
+功能介紹：
+"iPhone 15價格" - 查詢價格
+"推薦2萬元筆電" - 取得推薦
+"iPhone vs Samsung" - 產品比較
+"手機排行榜" - 熱門排行
+"新增至購物車 MacBook" - 購物車
+"說明" - 查看完整功能
+"""
     
     line_bot_api.reply_message(
         ReplyMessageRequest(
@@ -850,4 +968,4 @@ if __name__ == "__main__":
     
     # 啟動應用
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=True)
