@@ -175,11 +175,11 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -221,11 +221,11 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -268,11 +268,11 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             {"role": "user", "content": user_content}
         ]
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -323,11 +323,11 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
         ]
         
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -377,11 +377,11 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
         ]
         
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -432,11 +432,11 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
         ]
         
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            web_search_options={medium}
         )
         
         return response.choices[0].message.content
@@ -672,7 +672,7 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
         messages.append({"role": "user", "content": user_content})
         
         response = client.chat.completions.create(
-            model="gpt-4.1",
+            model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=800,
             temperature=0.3,
