@@ -179,7 +179,7 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            web_search_options={{"search_context_size": "medium"}}
+            web_search_options={"search_context_size": "medium"}
         )
         
         return response.choices[0].message.content
