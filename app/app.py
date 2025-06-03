@@ -223,7 +223,6 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
             model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3,
             web_search_options={"search_context_size": "medium"}
         )
         
@@ -270,7 +269,6 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
             model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3,
             web_search_options={"search_context_size": "medium"}
         )
         
@@ -672,9 +670,8 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
         response = client.chat.completions.create(
             model="gpt-4o-search-preview",
             messages=messages,
-            max_tokens=800,
-            temperature=0.3,
-            tools=[{ "type": "web_search_preview" }]
+            max_tokens=1500,
+            web_search_options={"search_context_size": "medium"}
         )
         
         return response.choices[0].message.content
