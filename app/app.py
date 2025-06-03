@@ -178,7 +178,6 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
             model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3,
             web_search_options={"search_context_size": "medium"}
         )
         
@@ -435,7 +434,6 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             model="gpt-4o-search-preview",
             messages=messages,
             max_tokens=1500,
-            temperature=0.3,
             web_search_options={"search_context_size": "medium"}
         )
         
