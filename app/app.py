@@ -57,66 +57,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 user_conversations = {}
 product_database = {}
 
-# 新增：網路搜尋功能
-def search_web(query: str, num_results: int = 5) -> List[Dict]:
-    """使用Google搜尋API或其他搜尋引擎搜尋網路資料"""
-    try:
-        # 使用DuckDuckGo搜尋（免費且無需API key）
-        search_url = f"https://duckduckgo.com/html/?q={urllib.parse.quote(query)}"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        response = requests.get(search_url, headers=headers, timeout=10)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            results = []
-            
-            # 解析搜尋結果
-            for result in soup.find_all('div', class_='result')[:num_results]:
-                title_elem = result.find('a', class_='result__a')
-                snippet_elem = result.find('a', class_='result__snippet')
-                
-                if title_elem and snippet_elem:
-                    results.append({
-                        'title': title_elem.get_text().strip(),
-                        'snippet': snippet_elem.get_text().strip(),
-                        'url': title_elem.get('href', '')
-                    })
-            
-            return results
-        
-        return []
-    except Exception as e:
-        logger.error(f"網路搜尋失敗: {e}")
-        return []
 
-def search_product_info(product_name: str) -> str:
-    """搜尋產品相關資訊"""
-    try:
-        # 搜尋產品規格和價格
-        search_queries = [
-            f"{product_name} 規格 價格 台灣",
-            f"{product_name} 評測 開箱",
-            f"{product_name} pchome momo 蝦皮 價格"
-        ]
-        
-        all_results = []
-        for query in search_queries:
-            results = search_web(query, 3)
-            all_results.extend(results)
-        
-        # 整理搜尋結果
-        if all_results:
-            search_context = "\n\n搜尋到的相關資訊：\n"
-            for i, result in enumerate(all_results[:8], 1):
-                search_context += f"{i}. {result['title']}\n{result['snippet']}\n\n"
-            return search_context
-        
-        return ""
-    except Exception as e:
-        logger.error(f"產品資訊搜尋失敗: {e}")
-        return ""
 
 # 資料庫初始化
 def init_database():
@@ -211,8 +152,7 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
     # 搜尋最新價格資訊
-    search_context = search_product_info(device_name)
-    
+    #search_context = search_product_info(device_name)
     system_message = {
         "role": "system",
         "content": (
@@ -230,24 +170,16 @@ def get_device_price(device_name: str, user_id: str = None) -> str:
     
     try:
         # 組合搜尋結果和用戶問題
-        user_content = f"請查詢 {device_name} 的價格資訊{search_context}"
-        
+        user_content = f"請查詢 {device_name} 的價格資訊"
         messages = [system_message] + conversation_history + [
             {"role": "user", "content": user_content}
         ]
-        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -265,8 +197,7 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
     # 搜尋最新產品資訊
-    search_context = search_product_info(product_name)
-    
+    #search_context = search_product_info(product_name)
     system_message = {
         "role": "system",
         "content": (
@@ -285,24 +216,16 @@ def get_3c_product_info(product_name: str, user_id: str = None) -> str:
     
     try:
         # 組合搜尋結果和用戶問題
-        user_content = f"請提供 {product_name} 的詳細規格資訊{search_context}"
-        
+        user_content = f"請提供 {product_name} 的詳細規格資訊"
         messages = [system_message] + conversation_history + [
             {"role": "user", "content": user_content}
         ]
-        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -320,16 +243,9 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
     # 搜尋兩個產品的比較資訊
-    search_context1 = search_product_info(device1)
-    search_context2 = search_product_info(device2)
-    comparison_search = search_web(f"{device1} vs {device2} 比較", 3)
-    
-    comparison_context = ""
-    if comparison_search:
-        comparison_context = "\n\n比較資訊：\n"
-        for result in comparison_search:
-            comparison_context += f"- {result['title']}: {result['snippet']}\n"
-    
+    #search_context1 = search_product_info(device1)
+    #search_context2 = search_product_info(device2)
+    #comparison_search = search_web(f"{device1} vs {device2} 比較", 3)
     system_message = {
         "role": "system",
         "content": (
@@ -347,24 +263,16 @@ def compare_devices(device1: str, device2: str, user_id: str = None) -> str:
     
     try:
         # 組合所有搜尋結果
-        user_content = f"請比較 {device1} 和 {device2} 的差異{search_context1}{search_context2}{comparison_context}"
-        
+        user_content = f"請比較 {device1} 和 {device2} 的差異"
         messages = [system_message] + conversation_history + [
             {"role": "user", "content": user_content}
         ]
-        
         response = client.chat.completions.create(
             model="gpt-4.1",
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -419,13 +327,7 @@ def get_upgrade_recommendation_single(user_input: str, user_id: str = None) -> s
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -443,13 +345,12 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
     # 搜尋最新排行榜資訊
-    search_context = search_web(f"{category} 排行榜 2024 推薦", 5)
+    #search_context = search_web(f"{category} 排行榜 2024 推薦", 5)
     ranking_context = ""
-    if search_context:
-        ranking_context = "\n\n最新排行榜資訊：\n"
-        for result in search_context:
-            ranking_context += f"- {result['title']}: {result['snippet']}\n"
-    
+    #if search_context:
+    #    ranking_context = "\n\n最新排行榜資訊：\n"
+    #    for result in search_context:
+    #        ranking_context += f"- {result['title']}: {result['snippet']}\n"
     system_message = {
         "role": "system",
         "content": (
@@ -480,13 +381,7 @@ def get_popular_ranking(category: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -504,13 +399,12 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
         conversation_history = [{"role": msg["role"], "content": msg["content"]} for msg in history]
     
     # 搜尋評價相關資訊
-    search_context = search_web(f"{product_name} 評價 心得 PTT Mobile01", 5)
+    #search_context = search_web(f"{product_name} 評價 心得 PTT Mobile01", 5)
     review_context = ""
-    if search_context:
-        review_context = "\n\n評價資訊：\n"
-        for result in search_context:
-            review_context += f"- {result['title']}: {result['snippet']}\n"
-    
+    #if search_context:
+    #    review_context = "\n\n評價資訊：\n"
+    #    for result in search_context:
+    #        review_context += f"- {result['title']}: {result['snippet']}\n"
     system_message = {
         "role": "system",
         "content": (
@@ -531,7 +425,7 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
     
     try:
         # 組合搜尋結果和用戶問題
-        user_content = f"請彙整 {product_name} 的評價和使用心得{review_context}"
+        user_content = f"請彙整 {product_name} 的評價和使用心得"
         
         messages = [system_message] + conversation_history + [
             {"role": "user", "content": user_content}
@@ -542,13 +436,7 @@ def get_product_reviews(product_name: str, user_id: str = None) -> str:
             messages=messages,
             max_tokens=1500,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
@@ -788,13 +676,7 @@ def handle_follow_up_question(user_input: str, user_id: str) -> str:
             messages=messages,
             max_tokens=800,
             temperature=0.3,
-            tools=[{
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Search the web for relevant information"
-                }
-            }]
+            tools=[{ "type": "web_search_preview" }]
         )
         
         return response.choices[0].message.content
