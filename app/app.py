@@ -34,7 +34,7 @@ DetectorFactory.seed = 0
 load_dotenv()
 
 # 設定日誌
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG, force=True)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
